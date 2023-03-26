@@ -1,7 +1,8 @@
-# from selenium import webdriver
-# from selenium.webdriver.common.by import By
+
+import json as js
 import re
 
+import boto3
 import requests as reqs
 from bs4 import BeautifulSoup
 
@@ -124,32 +125,63 @@ WHITELIST = [
 ]
 BASE_URL = "https://www.romsgames.net"
 URL = f"{BASE_URL}/roms/"
+BUCKET_NAME = "machine-learning-predictions"
 
 
-def get_games_urls(url, games=None):
-    print(url)
-    print(games)
-    if url == "#":
-        pass
+def get_games_urls(url):
+    print("*" * 80)
+    print(url["href"])
+    flat_list = []
+
+    if url["href"] != "#":
+        print("I am working")
+        req = reqs.get(f"{BASE_URL}{url['href']}")
+        soup = BeautifulSoup(req.text, "html.parser")
+
+        games = soup.find_all("ul", class_="rg-gamelist")
+        lis_dirty = [game.find_all("li") for game in games]
+        flat_list = [item for sublist in lis_dirty for item in sublist]
+    else:
+        return
+
+    data_process = [
+        {
+            "name": li.find("span").text,
+            "href": li.find("a", href=True)["href"],
+            "image": li.find("img")["src"],
+        }
+        for li in flat_list
+    ]
+
+    return data_process
 
 
 def get_urls_from_paginators(page_raw):
     soup = BeautifulSoup(page_raw.text, "html.parser")
     paginator = soup.find_all("ul", class_="pagination")
-    games = soup.find_all("ul", class_="rg-gamelist")
-    # print(page_raw.text)
-    for pag in paginator:
-        print(pag.get("class"))
+    collected_data = []
 
+    for pag in paginator:
         if "prenex" in pag.get("class"):
             continue
 
         pag = str(pag)
+        # print(pag)
         pag_links = BeautifulSoup(pag, "html.parser")
         links = pag_links.find_all("a", href=True)
 
-        for link in links:
-            get_games_urls(link, games)
+        for _, link in enumerate(links):
+            data = get_games_urls(link)
+
+            if data is not None:
+                collected_data += data
+
+    return collected_data
+
+
+def save_s3(data, file_name):
+    s3 = boto3.resource("s3")
+    s3.Bucket(BUCKET_NAME).put_object(Key=file_name, Body=data)
 
 
 def main():
@@ -157,6 +189,7 @@ def main():
     req = reqs.get(URL)
     soup = BeautifulSoup(req.text, "html.parser")
     job_elements = soup.find_all("a", href=True)
+    full_data = None
 
     for job_element in job_elements:
         is_rom_page = re.compile(r'/roms/*/')
@@ -167,28 +200,20 @@ def main():
 
             if name in WHITELIST:
                 page = reqs.get(f"{BASE_URL}{href}")
-                get_urls_from_paginators(page)
+                full_data = get_urls_from_paginators(page)
+                print(full_data)
+                full_data = [
+                    {**data, **{"base_url": BASE_URL}} for data in full_data
+                ]
+                # save to file
+                with open(f"{name}.json", "w") as f:
+                    js.dump(full_data, f, indent=4)
+
+                # save to s3
+                save_s3(js.dumps(full_data).encode(), f"{name}.json")
                 break
 
 
 if __name__ == "__main__":
     main()
-    # driver = webdriver.Firefox(executable_path='./geckodriver')
-    # driver.get("https://www.romsgames.net/roms/")
-    # try:
-    #     consoles = driver.find_elements(
-    #         By.XPATH, "//a[contains(@href,'/roms')]"
-    #     )
 
-    #     for console in consoles:
-    #         name = console.get_attribute('href').split('/')
-    #         name = list(filter(None, name)).pop()
-    #         print(name)
-    #         if name in WHITELIST:
-    #             console.click()
-    #             driver.back()
-    #             driver.implicitly_wait(1)
-    # except Exception as e:
-    #     print(e)
-
-    # driver.quit()
