@@ -22,12 +22,17 @@ func main() {
 	if err := os.Mkdir("images", os.ModePerm); err != nil {
 		log.Println(err)
 	}
+	cardsMonster := make([]Monster, 0)
 
 	// raices-misticas
 	c := colly.NewCollector(
 		colly.AllowedDomains("kodem-tcg.com"),
 	)
-	cardsMonster := make([]Monster, 0)
+
+	// c.Limit(&colly.LimitRule{
+	// 	Parallelism: 4,
+	// 	RandomDelay: 2 * time.Second,
+	// })
 
 	c.OnHTML("img", func(element *colly.HTMLElement) {
 		name := strings.Replace(element.Attr("alt"), ",", "", -1)
@@ -46,6 +51,8 @@ func main() {
 
 	c.Visit("https://kodem-tcg.com/raices-misticas")
 
+	fmt.Println(len(cardsMonster))
+
 	for _, monster := range cardsMonster {
 		err := monster.SaveImg()
 
@@ -57,6 +64,8 @@ func main() {
 		// 	break
 		// }
 	}
+
+	c.Wait()
 }
 
 func (m Monster) SaveImg() error {
@@ -76,20 +85,20 @@ func (m Monster) SaveImg() error {
 
 	unbased, err := base64.StdEncoding.DecodeString(data[index+8:])
 	if err != nil {
-		panic("Cannot decode b64")
+		log.Println("Cannot decode b64")
 	}
 	pathSave := "images/" + m.Name + ".png"
 	f, err := os.Create(pathSave)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	defer f.Close()
 
 	if _, err := f.Write(unbased); err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	if err := f.Sync(); err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	return nil
