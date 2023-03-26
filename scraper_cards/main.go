@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gocolly/colly/v2"
+	"github.com/anaskhan96/soup"
 )
 
 type Monster struct {
@@ -18,54 +18,32 @@ type Monster struct {
 }
 
 func main() {
-	// create folder to storage images
-	if err := os.Mkdir("images", os.ModePerm); err != nil {
-		log.Println(err)
+	resp, err := soup.Get("https://kodem-tcg.com/raices-misticas")
+
+	if err != nil {
+		log.Printf("Error to get data %s \n", err)
+		os.Exit(1)
 	}
-	cardsMonster := make([]Monster, 0)
 
-	// raices-misticas
-	c := colly.NewCollector(
-		colly.AllowedDomains("kodem-tcg.com"),
-	)
+	doc := soup.HTMLParse(resp)
+	images := doc.FindAll("img")
+	fmt.Println(len(images))
 
-	// c.Limit(&colly.LimitRule{
-	// 	Parallelism: 4,
-	// 	RandomDelay: 2 * time.Second,
-	// })
-
-	c.OnHTML("img", func(element *colly.HTMLElement) {
-		name := strings.Replace(element.Attr("alt"), ",", "", -1)
+	for _, image := range images {
+		fmt.Println("alt:", image.Attrs()["alt"])
+		name := strings.Replace(image.Attrs()["alt"], ",", "", -1)
 		name = strings.Replace(name, " ", "_", -1)
-		monster := Monster{
+
+		m := Monster{
 			Name:   name,
-			ImgB64: element.Attr("src"),
+			ImgB64: image.Attrs()["src"],
 		}
-
-		cardsMonster = append(cardsMonster, monster)
-	})
-
-	c.OnRequest(func(request *colly.Request) {
-		fmt.Println("Visiting", request.URL.String())
-	})
-
-	c.Visit("https://kodem-tcg.com/raices-misticas")
-
-	fmt.Println(len(cardsMonster))
-
-	for _, monster := range cardsMonster {
-		err := monster.SaveImg()
+		err := m.SaveImg()
 
 		if err != nil {
-			log.Println(err)
+			fmt.Println(err)
 		}
-
-		// if i == 0 {
-		// 	break
-		// }
 	}
-
-	c.Wait()
 }
 
 func (m Monster) SaveImg() error {
@@ -80,8 +58,8 @@ func (m Monster) SaveImg() error {
 		return err
 	}
 
-	imageType := data[11:index]
-	fmt.Println(imageType)
+	// imageType := data[11:index]
+	// fmt.Println(imageType)
 
 	unbased, err := base64.StdEncoding.DecodeString(data[index+8:])
 	if err != nil {
