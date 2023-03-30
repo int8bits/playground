@@ -4,6 +4,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"log"
 	"os"
 	"strings"
@@ -43,41 +46,74 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
+
+		// if i == 2 {
+		// 	break
+		// }
 	}
 }
 
-func (m Monster) SaveImg() error {
-	data := m.ImgB64
+func (mons Monster) SaveImg() error {
+	data_full := mons.ImgB64
 
-	index := strings.Index(data, ";base64,")
+	index := strings.Index(data_full, ";base64,")
 
 	if index < 0 {
-		log.Printf("The %s is not possible create image", m.Name)
+		log.Printf("The %s is not possible create image", mons.Name)
 		err := errors.New("error with string to covert")
 
 		return err
 	}
+	pathSave := "images/" + mons.Name
 
-	// imageType := data[11:index]
-	// fmt.Println(imageType)
-
-	unbased, err := base64.StdEncoding.DecodeString(data[index+8:])
+	// Decodificar la cadena base64
+	// fmt.Println(data_full[index+8:])
+	imageData, err := base64.StdEncoding.DecodeString(data_full[index+8:])
 	if err != nil {
-		log.Println("Cannot decode b64")
+		log.Fatal("Error decodificando la cadena base64:", err)
 	}
-	pathSave := "images/" + m.Name + ".png"
-	f, err := os.Create(pathSave)
-	if err != nil {
-		log.Println(err)
-	}
-	defer f.Close()
 
-	if _, err := f.Write(unbased); err != nil {
-		log.Println(err)
+	// Decodificar la imagen en formato PNG
+	img, _, err := image.Decode(strings.NewReader(string(imageData)))
+	if err != nil {
+		fmt.Println("Error decodificando la imagen en png:", err)
+
+		// Decodificar la imagen en formato JPEG
+		img, err := jpeg.Decode(strings.NewReader(string(imageData)))
+		if err != nil {
+			log.Fatal("Error decodificando la imagen:", err)
+		}
+
+		// Guardar la imagen en un archivo
+		out, err := os.Create(pathSave + ".jpg")
+		if err != nil {
+			log.Fatal("Error creando archivo:", err)
+		}
+		defer out.Close()
+
+		// Codificar la imagen en formato JPEG y escribir en el archivo
+		err = jpeg.Encode(out, img, nil)
+		if err != nil {
+			log.Fatal("Error escribiendo la imagen:", err)
+		}
+
+		return nil
 	}
-	if err := f.Sync(); err != nil {
-		log.Println(err)
+
+	// Guardar la imagen en un archivo
+	out, err := os.Create(pathSave + ".png")
+	if err != nil {
+		log.Fatal("Error creando archivo:", err)
 	}
+	defer out.Close()
+
+	// Codificar la imagen en formato PNG y escribir en el archivo
+	err = png.Encode(out, img)
+	if err != nil {
+		log.Fatal("Error escribiendo la imagen:", err)
+	}
+
+	log.Println("La imagen se ha guardado correctamente.")
 
 	return nil
 }
