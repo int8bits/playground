@@ -5,11 +5,14 @@ import (
 	"log"
 	"os"
 	"strings"
+	"ws-kodem/models"
+	"ws-kodem/utilities"
 
 	"github.com/anaskhan96/soup"
 )
 
 func main() {
+	var subImages []models.SubImage
 	resp, err := soup.Get("https://kodem-tcg.com/raices-misticas")
 
 	if err != nil {
@@ -25,19 +28,31 @@ func main() {
 		fmt.Println("alt:", image.Attrs()["alt"])
 		name := strings.Replace(image.Attrs()["alt"], ",", "", -1)
 		name = strings.Replace(name, " ", "_", -1)
+		name = utilities.RemoveAccents(name)
 
-		m := Monster{
+		m := models.Monster{
 			Name:   name,
 			ImgB64: image.Attrs()["src"],
 		}
-		err := m.SaveImg()
+		path, err := m.SaveImg()
 
 		if err != nil {
 			fmt.Println(err)
+			continue
 		}
 
-		// if i == 2 {
+		subImage := new(models.SubImage)
+		subImage.Image = path
+		subImage.NameMonster = name
+		subImages = append(subImages, *subImage)
+
+		// if i == 5 {
 		// 	break
 		// }
+	}
+
+	// fmt.Println(subImages)
+	for _, subImage := range subImages {
+		subImage.Split()
 	}
 }
