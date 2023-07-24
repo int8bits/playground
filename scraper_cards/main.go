@@ -20,6 +20,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	f, err := os.OpenFile("kodem-page.html", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
+	if err != nil {
+		log.Println(err.Error())
+	}
+	defer f.Close()
+
+	f.WriteString(resp + "\n")
+
 	doc := soup.HTMLParse(resp)
 	images := doc.FindAll("img")
 	fmt.Println(len(images))
@@ -45,10 +54,6 @@ func main() {
 		subImage.Image = path
 		subImage.NameMonster = name
 		subImages = append(subImages, *subImage)
-
-		// if i == 5 {
-		// 	break
-		// }
 	}
 
 	// fmt.Println(subImages)
