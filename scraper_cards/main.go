@@ -12,22 +12,38 @@ import (
 )
 
 func main() {
+	fromLocal := true
+	fileName := "kodem-page.html"
+	var resp string
 	var subImages []models.SubImage
-	resp, err := soup.Get("https://kodem-tcg.com/raices-misticas")
+	var subImagesLinks []models.SubImage
 
-	if err != nil {
-		log.Printf("Error to get data %s \n", err)
-		os.Exit(1)
+	if !fromLocal {
+		resp, err := soup.Get("https://kodem-tcg.com/raices-misticas")
+
+		if err != nil {
+			log.Printf("Error to get data %s \n", err)
+			os.Exit(1)
+		}
+
+		f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
+		if err != nil {
+			log.Println(err.Error())
+		}
+		defer f.Close()
+
+		f.WriteString(resp + "\n")
+	} else {
+		fileR, err := os.ReadFile(fileName)
+
+		if err != nil {
+			log.Printf("Is not possible read file %s \n", fileName)
+			os.Exit(1)
+		}
+
+		resp = string(fileR)
 	}
-
-	f, err := os.OpenFile("kodem-page.html", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-
-	if err != nil {
-		log.Println(err.Error())
-	}
-	defer f.Close()
-
-	f.WriteString(resp + "\n")
 
 	doc := soup.HTMLParse(resp)
 	images := doc.FindAll("img")
@@ -58,6 +74,8 @@ func main() {
 
 	// fmt.Println(subImages)
 	for _, subImage := range subImages {
-		subImage.Split()
+		subImagesLinks = append(subImagesLinks, models.Split(subImage))
 	}
+
+	fmt.Println(subImagesLinks[0])
 }
