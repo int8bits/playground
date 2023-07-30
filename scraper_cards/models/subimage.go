@@ -22,12 +22,38 @@ var typeBio = []int{710, 650, 755, 850}
 var effectBio = []int{755, 100, 920, 1400}
 var descriptionBio = []int{900, 100, 1000, 1400}
 
+// This struct is used to save name and paths of images
 type SubImage struct {
-	Image       string `json:"image"`
-	NameMonster string
+	Image          string `json:"image"`
+	NameMonster    string
+	TypeMonster    string
+	Effects        string
+	Description    string
+	Attack         string
+	Rest           string
+	NameBio        string
+	TypeBio        string
+	EffectBio      string
+	DescriptionBio string
 }
 
-func (subImg *SubImage) Split() {
+// Struct to get data from images
+type SubImageData struct {
+	Image          string
+	NameMonster    string
+	TypeMonster    string
+	Effects        string
+	Description    string
+	Attack         string
+	Rest           string
+	NameBio        string
+	TypeBio        string
+	EffectBio      string
+	DescriptionBio string
+}
+
+// Function to separate images of files
+func Split(subImg SubImage) SubImage {
 	mapSplits := map[string][]int{
 		"name":            name,
 		"type_monster":    typeMonster,
@@ -67,15 +93,40 @@ func (subImg *SubImage) Split() {
 
 		if strings.Contains(k, "bio") {
 			fmt.Println("rotate image")
-			subImage = imaging.Rotate90(subImage)
+			subImage = imaging.Rotate270(subImage)
 		}
 
 		// Guardar la subimagen en un archivo
-		out, err := os.Create("process_image/" + subImg.NameMonster + "/" + k + "_subimagen.png")
+		path := "process_image/" + subImg.NameMonster + "/" + k + "_subimagen.png"
+		out, err := os.Create(path)
 		if err != nil {
 			log.Fatal("Error creando archivo:", err)
 		}
 		defer out.Close()
+
+		switch k {
+		case "type_monster":
+			fmt.Println(path)
+			subImg.TypeMonster = path
+		case "effects":
+			subImg.Effects = path
+		case "description":
+			subImg.Description = path
+		case "attack":
+			subImg.Attack = path
+		case "rest":
+			subImg.Rest = path
+		case "name_bio":
+			subImg.NameBio = path
+		case "type_bio":
+			subImg.TypeBio = path
+		case "effect_bio":
+			subImg.EffectBio = path
+		case "description_bio":
+			subImg.DescriptionBio = path
+		default:
+			fmt.Println("cosa rara paso")
+		}
 
 		// Codificar la subimagen en formato PNG y escribir en el archivo
 		err = png.Encode(out, subImage)
@@ -85,4 +136,11 @@ func (subImg *SubImage) Split() {
 
 		log.Println("La subimagen se ha guardado correctamente.")
 	}
+
+	return subImg
+}
+
+// function to get data from images, descriptions, attack, rests and others
+func GetData() {
+
 }
