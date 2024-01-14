@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/disintegration/imaging"
+	"github.com/otiai10/gosseract/v2"
 )
 
 var name = []int{80, 75, 990, 170}
@@ -24,7 +25,7 @@ var descriptionBio = []int{900, 100, 1000, 1400}
 
 // This struct is used to save name and paths of images
 type SubImage struct {
-	Image          string `json:"image"`
+	Image          string
 	NameMonster    string
 	TypeMonster    string
 	Effects        string
@@ -50,6 +51,16 @@ type SubImageData struct {
 	TypeBio        string
 	EffectBio      string
 	DescriptionBio string
+}
+
+type CleanDataImage struct {
+	Image       string
+	Name        string
+	Type        string
+	Effects     string
+	Description string
+	Attack      string
+	Rest        string
 }
 
 // Function to separate images of files
@@ -141,6 +152,21 @@ func Split(subImg SubImage) SubImage {
 }
 
 // function to get data from images, descriptions, attack, rests and others
-func GetData() {
+func GetData(dataGet SubImage) CleanDataImage {
+	cdi := new(CleanDataImage)
+	client := gosseract.NewClient()
+	client.SetLanguage("spa")
+	defer client.Close()
 
+	client.SetImage(dataGet.NameMonster)
+	nameM, _ := client.Text()
+	// client.SetImage(dataGet.NameBio)
+	// nameB, _ := client.Text()
+
+	fmt.Println("*******************************************************")
+	fmt.Println(nameM)
+	// fmt.Println(nameB)
+	fmt.Println("*******************************************************")
+
+	return *cdi
 }

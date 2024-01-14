@@ -77,5 +77,9 @@ func main() {
 		subImagesLinks = append(subImagesLinks, models.Split(subImage))
 	}
 
-	fmt.Println(subImagesLinks[0])
+	// fmt.Println(subImagesLinks[0])
+
+	for _, sil := range subImagesLinks {
+		models.GetData(sil)
+	}
 }
